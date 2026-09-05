@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student Time Manager</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* --- Same CSS from previous version --- */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+:root{--primary:#4361ee;--secondary:#3a0ca3;--accent:#4cc9f0;--light:#f8f9fa;--dark:#212529;--success:#4bb543;--warning:#ffcc00;--danger:#dc3545;}
+body{background:linear-gradient(135deg,#f5f7fa 0%,#c3cfe2 100%);color:var(--dark);min-height:100vh;padding:20px;transition:background 0.4s,color 0.4s;}
+body.dark{background:#121212;color:#f1f1f1;}
+.container{max-width:1200px;margin:0 auto;}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;padding:20px;background:white;border-radius:15px;box-shadow:0 5px 15px rgba(0,0,0,0.1);}
+body.dark header,body.dark .card{background:#1e1e1e;color:white;}
+.logo{display:flex;align-items:center;gap:15px;}
+.logo i{font-size:2.5rem;color:var(--primary);}
+.logo h1{font-size:1.8rem;color:var(--secondary);}
+.date-display{font-size:1.2rem;font-weight:500;}
+.dashboard{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:768px){.dashboard{grid-template-columns:1fr;}}
+.card{background:white;border-radius:15px;padding:25px;box-shadow:0 5px 15px rgba(0,0,0,0.1);transition:transform 0.3s ease;}
+.card:hover{transform:translateY(-5px);}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid var(--light);}
+.card-title{font-size:1.4rem;color:var(--secondary);}
+body.dark .card-title{color:var(--accent);}
+.btn{background:var(--primary);color:white;border:none;padding:8px 15px;border-radius:8px;cursor:pointer;font-weight:500;transition:background 0.3s;}
+.btn:hover{background:var(--secondary);}
+.task-list{list-style:none;}
+.task-item{display:flex;align-items:center;padding:15px 0;border-bottom:1px solid #eee;}
+.task-item:last-child{border-bottom:none;}
+.task-checkbox{margin-right:15px;width:20px;height:20px;cursor:pointer;}
+.task-content{flex:1;}
+.task-title{font-weight:500;margin-bottom:5px;}
+.task-due{font-size:0.9rem;color:#666;}
+.priority-high{border-left:4px solid var(--danger);}
+.priority-medium{border-left:4px solid var(--warning);}
+.priority-low{border-left:4px solid var(--success);}
+.schedule-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+.schedule-day{text-align:center;padding:10px;background:var(--light);border-radius:8px;font-weight:500;}
+.schedule-item{background:var(--accent);color:white;padding:8px;border-radius:8px;margin-top:8px;font-size:0.9rem;}
+.progress-container{margin-top:20px;}
+.progress-bar{height:10px;background:#e9ecef;border-radius:5px;margin-bottom:10px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--success);border-radius:5px;width:0%;transition:width 0.4s;}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-top:20px;}
+.stat-card{background:var(--light);padding:15px;border-radius:10px;text-align:center;}
+.stat-value{font-size:1.8rem;font-weight:700;color:var(--primary);margin:10px 0;}
+.stat-label{font-size:0.9rem;color:#666;}
+.quote-container{text-align:center;padding:20px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;border-radius:15px;margin-top:20px;}
+.quote{font-style:italic;margin-bottom:10px;font-size:1.2rem;}
+.author{font-weight:500;}
+footer{text-align:center;margin-top:30px;padding:20px;color:#666;font-size:0.9rem;}
+body.dark footer{color:#bbb;}
+/* --- Popup form styling --- */
+#eventForm {
+  display:none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:10px;
+  box-shadow:0 0 20px rgba(0,0,0,0.3);
+  z-index:1000;
+  width:300px;
+}
+#eventForm.dark {background:#1e1e1e;color:white;}
+#overlay {
+  display:none;
+  position:fixed;
+  top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.6);
+  z-index:999;
+}
+#eventForm input, #eventForm select {
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+  border-radius:5px;
+  border:1px solid #ccc;
+}
+#eventForm button {
+  margin-top:10px;
+  width:100%;
+}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="logo">
+    <i class="fas fa-graduation-cap"></i><h1>Student Time Manager</h1>
+  </div>
+  <div>
+    <div class="date-display" id="currentDate"></div>
+    <button class="btn" id="toggleTheme" style="margin-left:10px;">🌙 Dark Mode</button>
+  </div>
+</header>
+
+<div class="dashboard">
+  <!-- Tasks -->
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Upcoming Tasks</h2><button class="btn" id="addTaskBtn">Add Task</button></div>
+    <ul class="task-list" id="taskList"></ul>
+  </div>
+
+  <!-- Weekly Schedule -->
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Weekly Schedule</h2><button class="btn" id="addEventBtn">Add Event</button></div>
+    <div class="schedule-grid" id="scheduleGrid">
+      <div class="schedule-day">Mon</div>
+      <div class="schedule-day">Tue</div>
+      <div class="schedule-day">Wed</div>
+      <div class="schedule-day">Thu</div>
+      <div class="schedule-day">Fri</div>
+      <div class="schedule-day">Sat</div>
+      <div class="schedule-day">Sun</div>
+    </div>
+  </div>
+
+  <!-- Study Progress -->
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Study Progress</h2></div>
+    <div class="progress-container">
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <div id="progressText">Weekly Goal: 0% complete</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Tasks Completed</div><div class="stat-value" id="completedCount">0</div></div>
+      <div class="stat-card"><div class="stat-label">Study Streak</div><div class="stat-value">7 days</div></div>
+    </div>
+  </div>
+
+  <!-- Resources -->
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">Study Resources</h2></div>
+    <ul class="task-list">
+      <li class="task-item"><i class="fas fa-link" style="margin-right:15px;color:var(--primary);"></i><div class="task-content"><div class="task-title"><a href="https://www.khanacademy.org" target="_blank">Math Tutorials</a></div><div class="task-due">Khan Academy</div></div></li>
+      <li class="task-item"><i class="fas fa-link" style="margin-right:15px;color:var(--primary);"></i><div class="task-content"><div class="task-title"><a href="https://www.jstor.org" target="_blank">Research Database</a></div><div class="task-due">University Library</div></div></li>
+      <li class="task-item"><i class="fas fa-link" style="margin-right:15px;color:var(--primary);"></i><div class="task-content"><div class="task-title"><a href="https://owl.purdue.edu/" target="_blank">Writing Center</a></div><div class="task-due">Purdue OWL</div></div></li>
+    </ul>
+  </div>
+</div>
+
+<div class="quote-container">
+  <div class="quote">"The future depends on what you do today."</div>
+  <div class="author">- Mahatma Gandhi</div>
+</div>
+
+<footer><p>Student Time Manager © 2025 | Designed to help students succeed</p></footer>
+</div>
+
+<!-- Event Popup -->
+<div id="overlay"></div>
+<div id="eventForm">
+  <h3>Add New Event</h3>
+  <label>Day:</label>
+  <select id="eventDay">
+    <option>Mon</option><option>Tue</option><option>Wed</option>
+    <option>Thu</option><option>Fri</option><option>Sat</option><option>Sun</option>
+  </select>
+  <label>Event Name:</label>
+  <input type="text" id="eventName" placeholder="e.g. Physics Class">
+  <label>Time:</label>
+  <input type="text" id="eventTime" placeholder="e.g. 4:00 PM">
+  <button class="btn" id="saveEventBtn">Save Event</button>
+  <button class="btn" id="cancelEventBtn" style="background:var(--danger);margin-top:5px;">Cancel</button>
+</div>
+
+<script>
+// --- Existing features (date, theme, tasks, etc.) ---
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+const taskList=document.getElementById('taskList');
+const defaultTasks=[{title:'Math Assignment',due:'Tomorrow, 10:00 AM',priority:'high'},{title:'History Essay',due:'Friday, 5:00 PM',priority:'medium'},{title:'Science Lab Report',due:'Next Monday',priority:'low'},{title:'Group Project Meeting',due:'Today, 3:00 PM',priority:'high'}];
+
+function loadTasks(){const saved=JSON.parse(localStorage.getItem('tasks'))||defaultTasks;taskList.innerHTML='';saved.forEach((t,i)=>{const li=document.createElement('li');li.className=`task-item priority-${t.priority}`;li.innerHTML=`<input type="checkbox" class="task-checkbox" ${t.done?'checked':''}><div class="task-content"><div class="task-title">${t.title}</div><div class="task-due">Due: ${t.due}</div></div>`;taskList.appendChild(li);});attachCheckboxListeners();updateProgress();}
+function saveTasks(){const tasks=[];document.querySelectorAll('#taskList .task-item').forEach(li=>{tasks.push({title:li.querySelector('.task-title').textContent,due:li.querySelector('.task-due').textContent.replace('Due: ',''),priority:li.className.match(/priority-(\w+)/)[1],done:li.querySelector('.task-checkbox').checked});});localStorage.setItem('tasks',JSON.stringify(tasks));}
+function attachCheckboxListeners(){document.querySelectorAll('.task-checkbox').forEach(cb=>{cb.addEventListener('change',()=>{cb.parentElement.style.opacity=cb.checked?'0.6':'1';cb.parentElement.style.textDecoration=cb.checked?'line-through':'none';saveTasks();updateProgress();});if(cb.checked){cb.parentElement.style.opacity='0.6';cb.parentElement.style.textDecoration='line-through';}});}
+document.getElementById('addTaskBtn').addEventListener('click',()=>{const title=prompt("Enter task title:");if(!title)return;const due=prompt("Enter due date/time:");const priority=prompt("Enter priority (high, medium, low):","low").toLowerCase();const li=document.createElement('li');li.className=`task-item priority-${priority}`;li.innerHTML=`<input type="checkbox" class="task-checkbox"><div class="task-content"><div class="task-title">${title}</div><div class="task-due">Due: ${due}</div></div>`;taskList.appendChild(li);attachCheckboxListeners();saveTasks();updateProgress();});
+function updateProgress(){const all=document.querySelectorAll('.task-checkbox').length;const done=document.querySelectorAll('.task-checkbox:checked').length;const percent=all?Math.round((done/all)*100):0;document.querySelector('.progress-fill').style.width=percent+'%';document.getElementById('progressText').textContent=`Weekly Goal: ${percent}% complete`;document.getElementById('completedCount').textContent=`${done}/${all}`;}
+const themeBtn=document.getElementById('toggleTheme');themeBtn.addEventListener('click',()=>{document.body.classList.toggle('dark');themeBtn.textContent=document.body.classList.contains('dark')?'☀️ Light Mode':'🌙 Dark Mode';localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');});if(localStorage.getItem('theme')==='dark'){document.body.classList.add('dark');themeBtn.textContent='☀️ Light Mode';}
+loadTasks();
+
+// --- Add Event Functionality ---
+const overlay=document.getElementById('overlay');
+const eventForm=document.getElementById('eventForm');
+const saveEventBtn=document.getElementById('saveEventBtn');
+const cancelEventBtn=document.getElementById('cancelEventBtn');
+const scheduleGrid=document.getElementById('scheduleGrid');
+
+function showEventForm(){
+  overlay.style.display='block';
+  eventForm.style.display='block';
+  if(document.body.classList.contains('dark'))eventForm.classList.add('dark');
+}
+function hideEventForm(){
+  overlay.style.display='none';
+  eventForm.style.display='none';
+  eventForm.reset;
+}
+document.getElementById('addEventBtn').addEventListener('click',showEventForm);
+cancelEventBtn.addEventListener('click',hideEventForm);
+overlay.addEventListener('click',hideEventForm);
+
+function loadEvents(){
+  const saved=JSON.parse(localStorage.getItem('events'))||[];
+  saved.forEach(e=>addEventToDOM(e.day,e.name,e.time,false));
+}
+function saveEventToStorage(day,name,time){
+  const events=JSON.parse(localStorage.getItem('events'))||[];
+  events.push({day,name,time});
+  localStorage.setItem('events',JSON.stringify(events));
+}
+function addEventToDOM(day,name,time,save=true){
+  const days=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const dayIndex=days.indexOf(day);
+  if(dayIndex===-1)return;
+  const dayDiv=scheduleGrid.querySelectorAll('.schedule-day')[dayIndex];
+  const div=document.createElement('div');
+  div.className='schedule-item';
+  div.textContent=`${name} - ${time}`;
+  dayDiv.insertAdjacentElement('afterend',div);
+  if(save)saveEventToStorage(day,name,time);
+}
+
+saveEventBtn.addEventListener('click',()=>{
+  const day=document.getElementById('eventDay').value;
+  const name=document.getElementById('eventName').value.trim();
+  const time=document.getElementById('eventTime').value.trim();
+  if(!name||!time)return alert("Please enter event name and time!");
+  addEventToDOM(day,name,time,true);
+  hideEventForm();
+});
+
+loadEvents();
+</script>
+</body>
+</html>
